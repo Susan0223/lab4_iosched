@@ -61,6 +61,34 @@ public:
         request_queue.pop_front();
     }
 };
+class SSTF : public Scheduler{
+public:
+
+    int target_index = -1;
+    //deque<io_request*>::iterator itr;
+    void add_request(io_request* req){
+        request_queue.push_back(req);
+    }
+    io_request* get_next_request(){
+        //cout << "get next request" << endl;
+        //deque<io_request*>::iterator itr;
+        int min_distance = 10000;
+
+        for(int i = 0; i < request_queue.size(); i++){
+            if(abs(request_queue[i]->track - head) < min_distance){
+                min_distance = abs(request_queue[i]->track - head);
+                target_index = i;
+            }
+        }
+        io_request* req = request_queue[target_index];
+        return req;
+    }
+    void remove_request(){
+        //cout << "before erase: " + to_string(request_queue.size()) << endl;
+        request_queue.erase(request_queue.begin() + target_index, request_queue.begin() + target_index + 1);
+        //cout << "after erase: " + to_string(request_queue.size()) << endl;
+    }
+};
 
 /******************************* methods *********************************/
 
@@ -105,6 +133,9 @@ void read_sched(int argc, char *argv[]){
     if(sched == "i") {
         scheduler = new FIFO();
     }
+    if(sched == "j"){
+        scheduler = new SSTF();
+    }
 }
 void print_output(){
 
@@ -137,9 +168,7 @@ void simulation(){
             total_waitting += CURRENT_RUNNING->start_time - CURRENT_RUNNING->arrival_time;
             max_waittime = max(CURRENT_RUNNING->start_time - CURRENT_RUNNING->arrival_time, max_waittime);
             CURRENT_RUNNING = nullptr;
-            //cout << request_queue.size() << endl;
             scheduler->remove_request();
-            //cout << request_queue.size() << endl;
         }
 
 
@@ -148,10 +177,8 @@ void simulation(){
             //cout << "get next request, queue.size = " + to_string(request_queue.size()) << endl;
             if(i != io_inputs.size() || !request_queue.empty()){
                 io_request* next_req = scheduler->get_next_request();
-                //cout << "CURRENT TIME: " + to_string(CURRENT_TIME) << endl;
                 next_req->start_time = CURRENT_TIME;
                 CURRENT_RUNNING = next_req;
-                //scheduler->remove_request();
                 continue;
             }
         }
