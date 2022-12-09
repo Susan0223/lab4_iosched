@@ -89,6 +89,51 @@ public:
         //cout << "after erase: " + to_string(request_queue.size()) << endl;
     }
 };
+class SCAN : public Scheduler{
+public:
+    int direction = 1; //alwasy starts at 0 -> right
+    int target_i = 0;
+
+    void add_request(io_request* req){
+        request_queue.push_back(req);
+    }
+    io_request* get_next_request(){
+
+        int min_distance = INT32_MAX;
+        io_request* req;
+        bool change_dir = true;
+
+        for(int i = 0; i < request_queue.size(); i++){
+            int curr_dis = head - request_queue[i]->track;
+            if(direction == 1 && curr_dis <= 0){
+                if(abs(curr_dis) < min_distance){
+                    change_dir = false;
+                    min_distance = abs(curr_dis);
+                    target_i = i;
+                    continue;
+                }
+            }else if(direction == -1 && curr_dis >= 0){
+                if(abs(curr_dis) < min_distance){
+                    change_dir = false;
+                    min_distance = abs(curr_dis);
+                    target_i = i;
+                }
+            }
+        }
+        if(change_dir){
+            direction = direction * -1;
+            get_next_request();
+        }
+        req = request_queue[target_i];
+
+        return req;
+    }
+    void remove_request(){
+        //cout << "before erase: " + to_string(request_queue.size()) << endl;
+        request_queue.erase(request_queue.begin() + target_i, request_queue.begin() + target_i + 1);
+        //cout << "after erase: " + to_string(request_queue.size()) << endl;
+    }
+};
 
 /******************************* methods *********************************/
 
@@ -135,6 +180,9 @@ void read_sched(int argc, char *argv[]){
     }
     if(sched == "j"){
         scheduler = new SSTF();
+    }
+    if(sched == "s"){
+        scheduler = new SCAN();
     }
 }
 void print_output(){
