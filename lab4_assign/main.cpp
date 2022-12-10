@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <utility>
 #include <cstring>
+#include <deque>
+#include <climits>
 
 using namespace std;
 
