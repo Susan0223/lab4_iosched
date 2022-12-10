@@ -134,6 +134,74 @@ public:
         //cout << "after erase: " + to_string(request_queue.size()) << endl;
     }
 };
+class FLOOK : public Scheduler{
+public:
+    int direction = 1; //alwasy starts at 0 -> right
+    int target_i = 0;
+    //deque<io_request*> active_q;
+    deque<io_request*> add_queue;
+
+    void add_request(io_request* req){
+
+        //cout << "add request" << endl;
+        add_queue.push_back(req);
+
+    }
+
+    io_request* get_next_request(){
+
+        int min_distance = INT32_MAX;
+        io_request* req;
+        bool change_dir = true;
+
+
+
+        if(request_queue.empty() && add_queue.empty()) return nullptr;
+
+        if(request_queue.empty() && !add_queue.empty())
+            swap(request_queue, add_queue);
+
+        for(int i = 0; i < request_queue.size(); i++){
+            int curr_dis = head - request_queue[i]->track;
+            if(direction == 1 && curr_dis <= 0){
+                if(abs(curr_dis) < min_distance){
+                    change_dir = false;
+                    min_distance = abs(curr_dis);
+                    target_i = i;
+                    continue;
+                }
+            }else if(direction == -1 && curr_dis >= 0){
+                if(abs(curr_dis) < min_distance){
+                    change_dir = false;
+                    min_distance = abs(curr_dis);
+                    target_i = i;
+                }
+            }
+        }
+        if(change_dir){
+            direction = direction * -1;
+            get_next_request();
+        }
+
+        //cout << "active queue size" + to_string(request_queue.size()) << endl;
+        req = request_queue[target_i];
+
+        //cout << "track: " + to_string(req->track) << endl;
+
+        return req;
+    }
+    void remove_request(){
+        //cout << "before erase: " + to_string(request_queue.size()) << endl;
+
+        request_queue.erase(request_queue.begin() + target_i, request_queue.begin() + target_i + 1);
+        if(request_queue.empty() && !add_queue.empty())
+            swap(request_queue, add_queue);
+        //cout << "after erase: " + to_string(request_queue.size()) << endl;
+    }
+};
+class CLOOK : public Scheduler{
+
+};
 
 /******************************* methods *********************************/
 
@@ -184,6 +252,12 @@ void read_sched(int argc, char *argv[]){
     if(sched == "s"){
         scheduler = new SCAN();
     }
+    if(sched == "c"){
+        scheduler = new CLOOK();
+    }
+    if(sched == "f"){
+        scheduler = new FLOOK();
+    }
 }
 void print_output(){
 
@@ -221,16 +295,18 @@ void simulation(){
 
 
         //if no IO request active now
-        if(CURRENT_RUNNING == nullptr && !request_queue.empty()){
+        if(CURRENT_RUNNING == nullptr){
             //cout << "get next request, queue.size = " + to_string(request_queue.size()) << endl;
             if(i != io_inputs.size() || !request_queue.empty()){
                 io_request* next_req = scheduler->get_next_request();
-                next_req->start_time = CURRENT_TIME;
-                CURRENT_RUNNING = next_req;
-                continue;
+                if(next_req != nullptr){
+                    next_req->start_time = CURRENT_TIME;
+                    CURRENT_RUNNING = next_req;
+                    continue;
+                }
             }
         }
-        else if(CURRENT_RUNNING == nullptr && i == io_inputs.size() && request_queue.empty()){
+        if(CURRENT_RUNNING == nullptr && i == io_inputs.size() && request_queue.empty()){
             //cout << "exit" << endl;
             total_time = CURRENT_TIME;
             break;
